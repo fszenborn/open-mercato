@@ -773,7 +773,7 @@ export class CatalogProductPrice {
 @Entity({ tableName: 'catalog_data_quality_rules' })
 @Index({ name: 'dqe_rules_tenant_org_idx', properties: ['organizationId', 'tenantId'] })
 export class CatalogDataQualityRule {
-  [OptionalProps]?: 'createdAt' | 'updatedAt' | 'isActive' | 'severity' | 'weight' | 'params' | 'highSeverityCap'
+  [OptionalProps]?: 'createdAt' | 'updatedAt' | 'isActive' | 'severity' | 'weight' | 'params' | 'highSeverityCap' | 'conditionExpression'
 
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string
@@ -798,6 +798,9 @@ export class CatalogDataQualityRule {
 
   @Property({ type: 'jsonb', default: '{}' })
   params: Record<string, unknown> = {}
+
+  @Property({ name: 'condition_expression', type: 'jsonb', nullable: true })
+  conditionExpression?: Record<string, unknown> | null
 
   @Property({ name: 'high_severity_cap', type: 'smallint', default: 40 })
   highSeverityCap: number = 40

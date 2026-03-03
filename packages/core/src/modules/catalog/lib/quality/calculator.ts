@@ -7,12 +7,12 @@ export function calculateScore(
   const lowMed = bindings.filter((b) => b.severity === 'LOW' || b.severity === 'MEDIUM')
   const totalWeight = lowMed.reduce((s, b) => s + b.weight, 0)
   const passedWeight = lowMed
-    .filter((b) => results[b.ruleId]?.passed)
+    .filter((b) => results[b.bindingKey]?.passed)
     .reduce((s, b) => s + b.weight, 0)
 
   let score = totalWeight > 0 ? Math.round((passedWeight / totalWeight) * 100) : 100
 
-  const failed = bindings.filter((b) => !results[b.ruleId]?.passed)
+  const failed = bindings.filter((b) => !results[b.bindingKey]?.passed)
 
   if (failed.some((b) => b.severity === 'BLOCKER')) {
     score = 0
