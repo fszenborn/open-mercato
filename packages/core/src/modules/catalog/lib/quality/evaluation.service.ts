@@ -6,13 +6,14 @@ import type { Grade, ProductQualitySnapshot, RuleResult } from './types'
 import type { ConfiguredRuleResolver } from './resolver'
 import type { RuleRegistry } from './registry'
 import { calculateScore } from './calculator'
+import { evaluateExpression, type ConditionExpression } from '@open-mercato/core/modules/business_rules/lib/expression-evaluator'
 
 export class QualityEvaluationService {
   constructor(
     private em: EntityManager,
     private resolver: ConfiguredRuleResolver,
     private registry: RuleRegistry,
-  ) {}
+  ) { }
 
   async evaluateProduct(
     productId: string,
@@ -48,17 +49,34 @@ export class QualityEvaluationService {
     const results: Record<string, RuleResult> = {}
 
     for (const binding of bindings) {
-      const rule = this.registry.get(binding.ruleId)
-      if (!rule) {
-        results[binding.ruleId] = { passed: false, message: `Unknown rule class: ${binding.ruleId}` }
-        continue
-      }
-      try {
-        results[binding.ruleId] = rule.evaluate(snapshot, binding.params)
-      } catch (err) {
-        results[binding.ruleId] = {
-          passed: false,
-          message: `Rule evaluation error: ${err instanceof Error ? err.message : String(err)}`,
+      if (binding.conditionExpression) {
+        try {
+          // Use BR expression evaluator
+          const passed = evaluateExpression(
+            binding.conditionExpression as unknown as ConditionExpression,
+            snapshot,
+            {}
+          )
+          results[binding.bindingKey] = { passed, message: passed ? undefined : `Rule failed` }
+        } catch (err) {
+          results[binding.bindingKey] = {
+            passed: false,
+            message: `Expression evaluation error: ${err instanceof Error ? err.message : String(err)}`,
+          }
+        }
+      } else {
+        const rule = this.registry.get(binding.ruleId)
+        if (!rule) {
+          results[binding.bindingKey] = { passed: false, message: `Unknown rule class: ${binding.ruleId}` }
+          continue
+        }
+        try {
+          results[binding.bindingKey] = rule.evaluate(snapshot, binding.params)
+        } catch (err) {
+          results[binding.bindingKey] = {
+            passed: false,
+            message: `Rule evaluation error: ${err instanceof Error ? err.message : String(err)}`,
+          }
         }
       }
     }

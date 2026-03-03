@@ -7,7 +7,7 @@ function binding(
   weight = 1.0,
   highSeverityCap = 40,
 ): ConfiguredRuleBinding {
-  return { ruleId, params: {}, weight, severity, highSeverityCap }
+  return { bindingKey: ruleId, ruleId, params: {}, weight, severity, highSeverityCap }
 }
 
 /**
@@ -79,7 +79,7 @@ describe('TC-003: All rules pass → full score', () => {
       binding('attr.required:subtitle', 'LOW', 0.5),
     ]
     const results: Record<string, RuleResult> = Object.fromEntries(
-      bindings.map((b) => [b.ruleId, { passed: true }]),
+      bindings.map((b) => [b.bindingKey, { passed: true }]),
     )
     const { score, grade } = calculateScore(bindings, results)
     expect(score).toBe(100)
@@ -121,8 +121,8 @@ describe('grade thresholds', () => {
   it.each(cases)('passed=%i total=%i → grade=%s', (passed, total, expectedGrade) => {
     const bs = Array.from({ length: total }, (_, i) => binding(`rule.${i}`, 'MEDIUM'))
     const res: Record<string, RuleResult> = {}
-    bs.slice(0, passed).forEach((b) => { res[b.ruleId] = { passed: true } })
-    bs.slice(passed).forEach((b) => { res[b.ruleId] = { passed: false } })
+    bs.slice(0, passed).forEach((b) => { res[b.bindingKey] = { passed: true } })
+    bs.slice(passed).forEach((b) => { res[b.bindingKey] = { passed: false } })
     const { grade } = calculateScore(bs, res)
     expect(grade).toBe(expectedGrade)
   })

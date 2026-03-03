@@ -26,11 +26,14 @@ export interface ProductQualitySnapshot {
 }
 
 export interface ConfiguredRuleBinding {
+  /** Unique key for this binding — DB entity UUID. Used as the results map key. */
+  bindingKey: string
   ruleId: string
   params: Record<string, unknown>
   weight: number
   severity: Severity
   highSeverityCap: number
+  conditionExpression?: Record<string, unknown> | null
 }
 
 export interface ResolvedRules {

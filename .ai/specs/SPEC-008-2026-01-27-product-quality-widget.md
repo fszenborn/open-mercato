@@ -1,8 +1,8 @@
 # SPEC-008: Catalog Product Quality Engine
 
-**Created:** 2026-01-27 · **Revised:** 2026-02-28  
+**Created:** 2026-01-27 · **Revised:** 2026-03-03  
 **Module:** `catalog` — `packages/core/src/modules/catalog/`  
-**Status:** V1 Implementation Ready
+**Status:** V1 Implemented
 
 ---
 
@@ -135,7 +135,7 @@ export interface ProductQualitySnapshot {
   handle: string | null
   defaultMediaId: string | null
   mediaCount: number
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown> | null
 }
 
 export interface ConfiguredRuleBinding {
@@ -408,7 +408,7 @@ export const metadata = {
 @Entity({ tableName: 'catalog_data_quality_rules' })
 @Index({ name: 'dqe_rules_tenant_org_idx', properties: ['organizationId', 'tenantId'] })
 export class CatalogDataQualityRule {
-  [OptionalProps]?: 'createdAt' | 'updatedAt'
+  [OptionalProps]?: 'createdAt' | 'updatedAt' | 'isActive' | 'severity' | 'weight' | 'params' | 'highSeverityCap'
 
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string
@@ -468,7 +468,7 @@ export class CatalogDataQualityRule {
 @Index({ name: 'dqe_scores_grade_idx', properties: ['grade'] })
 @Index({ name: 'dqe_scores_tenant_org_idx', properties: ['organizationId', 'tenantId'] })
 export class CatalogDataQualityScore {
-  [OptionalProps]?: 'evaluatedAt' | 'violations'
+  [OptionalProps]?: 'violations' | 'evaluatedAt'
 
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string
@@ -757,14 +757,14 @@ Example param fields per ruleId:
 
 ```typescript
 // widgets/dashboard/catalog-health/config.ts
-export type CatalogHealthSettings = {
+export type CatalogHealthWidgetSettings = {
   pageSize: number    // 1–20, default 10
   maxScore?: number   // 0–100 optional upper bound
 }
-export const DEFAULT_SETTINGS: CatalogHealthSettings = { pageSize: 10 }
+export const DEFAULT_SETTINGS: CatalogHealthWidgetSettings = { pageSize: 10 }
 
 // widgets/dashboard/catalog-health/widget.ts
-const widget: DashboardWidgetModule<CatalogHealthSettings> = {
+const widget: DashboardWidgetModule<CatalogHealthWidgetSettings> = {
   metadata: {
     id: 'catalog.dashboard.catalogHealth',
     title: 'Catalog Health',
