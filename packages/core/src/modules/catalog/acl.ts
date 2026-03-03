@@ -6,6 +6,9 @@ export const features = [
   { id: 'catalog.variants.manage', title: 'Manage catalog variants', module: 'catalog' },
   { id: 'catalog.pricing.manage', title: 'Manage catalog pricing', module: 'catalog' },
   { id: 'catalog.settings.manage', title: 'Manage catalog settings', module: 'catalog' },
+  { id: 'catalog.quality.view', title: 'View product quality data', module: 'catalog' },
+  { id: 'catalog.quality.manage', title: 'Manage quality rules', module: 'catalog' },
+  { id: 'catalog.widgets.catalog-health', title: 'Catalog health widget', module: 'catalog' },
 ]
 
 export default features

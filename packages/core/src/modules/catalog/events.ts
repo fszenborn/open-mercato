@@ -32,6 +32,20 @@ const events = [
   // Lifecycle events - Pricing resolution
   { id: 'catalog.pricing.resolve.before', label: 'Before Pricing Resolve', category: 'lifecycle', excludeFromTriggers: true },
   { id: 'catalog.pricing.resolve.after', label: 'After Pricing Resolve', category: 'lifecycle', excludeFromTriggers: true },
+  {
+    id: 'catalog.quality_score.updated',
+    label: 'Quality Score Updated',
+    entity: 'quality_score',
+    category: 'crud',
+    description: 'Emitted after every successful product quality evaluation.',
+  },
+  {
+    id: 'catalog.quality_score.degraded',
+    label: 'Quality Score Degraded',
+    entity: 'quality_score',
+    category: 'lifecycle',
+    description: 'Emitted when the new score is lower than the previous score.',
+  },
 ] as const
 
 export const eventsConfig = createModuleEvents({
