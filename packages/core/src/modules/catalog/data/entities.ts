@@ -769,3 +769,81 @@ export class CatalogProductPrice {
   @Property({ name: 'updated_at', type: Date, onUpdate: () => new Date() })
   updatedAt: Date = new Date()
 }
+
+@Entity({ tableName: 'catalog_data_quality_rules' })
+@Index({ name: 'dqe_rules_tenant_org_idx', properties: ['organizationId', 'tenantId'] })
+export class CatalogDataQualityRule {
+  [OptionalProps]?: 'createdAt' | 'updatedAt' | 'isActive' | 'severity' | 'weight' | 'params' | 'highSeverityCap'
+
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
+  id!: string
+
+  @Property({ name: 'organization_id', type: 'uuid' })
+  organizationId!: string
+
+  @Property({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string
+
+  @Property({ name: 'rule_id', type: 'text' })
+  ruleId!: string
+
+  @Property({ type: 'text', nullable: true })
+  label?: string | null
+
+  @Property({ type: 'text', default: 'MEDIUM' })
+  severity: string = 'MEDIUM'
+
+  @Property({ type: 'numeric', precision: 5, scale: 2, default: '1.0' })
+  weight: string = '1.0'
+
+  @Property({ type: 'jsonb', default: '{}' })
+  params: Record<string, unknown> = {}
+
+  @Property({ name: 'high_severity_cap', type: 'smallint', default: 40 })
+  highSeverityCap: number = 40
+
+  @Property({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean = true
+
+  @Property({ name: 'created_at', type: Date, onCreate: () => new Date() })
+  createdAt: Date = new Date()
+
+  @Property({ name: 'updated_at', type: Date, onUpdate: () => new Date() })
+  updatedAt: Date = new Date()
+
+  @Property({ name: 'deleted_at', type: Date, nullable: true })
+  deletedAt?: Date | null
+}
+
+@Entity({ tableName: 'catalog_data_quality_scores' })
+@Unique({ name: 'dqe_scores_product_tenant_unique', properties: ['productId', 'tenantId'] })
+@Index({ name: 'dqe_scores_score_idx', properties: ['score'] })
+@Index({ name: 'dqe_scores_grade_idx', properties: ['grade'] })
+@Index({ name: 'dqe_scores_tenant_org_idx', properties: ['organizationId', 'tenantId'] })
+export class CatalogDataQualityScore {
+  [OptionalProps]?: 'violations' | 'evaluatedAt'
+
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
+  id!: string
+
+  @Property({ name: 'product_id', type: 'uuid' })
+  productId!: string
+
+  @Property({ name: 'organization_id', type: 'uuid' })
+  organizationId!: string
+
+  @Property({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string
+
+  @Property({ type: 'smallint' })
+  score!: number
+
+  @Property({ type: 'char' })
+  grade!: string
+
+  @Property({ type: 'jsonb', default: '{}' })
+  violations: Record<string, { passed: boolean; message?: string }> = {}
+
+  @Property({ name: 'evaluated_at', type: Date })
+  evaluatedAt!: Date
+}

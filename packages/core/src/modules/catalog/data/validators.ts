@@ -366,3 +366,60 @@ export type OfferUpdateInput = z.infer<typeof offerUpdateSchema>
 export type ProductUnitConversionCreateInput = z.infer<typeof productUnitConversionCreateSchema>
 export type ProductUnitConversionUpdateInput = z.infer<typeof productUnitConversionUpdateSchema>
 export type ProductUnitConversionDeleteInput = z.infer<typeof productUnitConversionDeleteSchema>
+
+// ─── Data Quality ────────────────────────────────────────────────────────────
+
+export const severityEnum = z.enum(['INFO', 'LOW', 'MEDIUM', 'HIGH', 'BLOCKER'])
+
+export const createQualityRuleSchema = scoped.extend({
+  ruleId: z.string().min(1),
+  label: z.string().nullable().optional(),
+  severity: severityEnum.default('MEDIUM'),
+  weight: z.number().min(0.1).max(10).default(1.0),
+  params: z.record(z.unknown()).default({}),
+  highSeverityCap: z.number().int().min(0).max(100).default(40),
+  isActive: z.boolean().default(true),
+})
+
+export const updateQualityRuleSchema = z.object({
+  id: z.string().uuid(),
+  organizationId: z.string().uuid().optional(),
+  tenantId: z.string().uuid().optional(),
+  ruleId: z.string().min(1).optional(),
+  label: z.string().nullable().optional(),
+  severity: severityEnum.optional(),
+  weight: z.number().min(0.1).max(10).optional(),
+  params: z.record(z.unknown()).optional(),
+  highSeverityCap: z.number().int().min(0).max(100).optional(),
+  isActive: z.boolean().optional(),
+})
+
+export const deleteQualityRuleSchema = scoped.extend({ id: z.string().uuid() })
+
+export const qualityRuleItemSchema = z.object({
+  id: z.string(),
+  ruleId: z.string(),
+  label: z.string().nullable(),
+  severity: severityEnum,
+  weight: z.number(),
+  params: z.record(z.unknown()),
+  highSeverityCap: z.number(),
+  isActive: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export const qualityRuleListQuerySchema = z.object({
+  page: z.coerce.number().min(1).optional(),
+  pageSize: z.coerce.number().min(1).max(100).optional(),
+  isActive: z
+    .string()
+    .optional()
+    .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
+})
+
+export type QualityRuleCreateInput = z.infer<typeof createQualityRuleSchema>
+export type QualityRuleUpdateInput = z.infer<typeof updateQualityRuleSchema>
+export type QualityRuleDeleteInput = z.infer<typeof deleteQualityRuleSchema>
+export type QualityRuleItem = z.infer<typeof qualityRuleItemSchema>
+export type QualityRuleListQuery = z.infer<typeof qualityRuleListQuerySchema>
