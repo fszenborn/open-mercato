@@ -26,6 +26,15 @@ export {
   type RuleIdExecutionContext,
 } from './lib/rule-engine'
 
+// Export expression evaluator types and functions
+export {
+  evaluateExpression,
+  type ConditionExpression,
+  type SimpleCondition,
+  type GroupCondition,
+  type EvaluationContext,
+} from './lib/expression-evaluator'
+
 // Export validator schemas
 export {
   directRuleExecutionContextSchema,

@@ -3,8 +3,8 @@ import { getAuthToken, apiRequest } from '@open-mercato/core/modules/core/__inte
 
 /**
  * IT-001: Full CRUD lifecycle for Quality Rules via API
- * Spec: SPEC-008 Phase 10 IT-001
- * Creates a rule, reads list, updates, soft-deletes, verifies list is empty.
+ * Spec: SPEC-008 V2 IT-001
+ * Creates a rule with conditionExpression, reads list, updates via PATCH /[id], soft-deletes via DELETE /[id].
  * Self-contained: cleans up in finally block.
  */
 test.describe('IT-001: Quality Rules CRUD API', () => {
@@ -19,11 +19,11 @@ test.describe('IT-001: Quality Rules CRUD API', () => {
       const createRes = await apiRequest(request, 'POST', '/api/catalog/quality/rules', {
         token,
         data: {
-          ruleId: 'attr.required',
+          ruleId: 'quality.subtitle.qa',
           label: 'QA IT-001 test rule',
           severity: 'LOW',
           weight: 0.5,
-          params: { field: 'subtitle' },
+          conditionExpression: { operator: 'IS_NOT_EMPTY', field: 'subtitle' },
           highSeverityCap: 40,
           isActive: true,
         },
@@ -44,12 +44,21 @@ test.describe('IT-001: Quality Rules CRUD API', () => {
       expect(found, 'Created rule not found in list').toBeTruthy();
       expect(found?.label).toBe('QA IT-001 test rule');
 
-      // UPDATE — change label and weight via PUT (in-body id)
-      const updateRes = await apiRequest(request, 'PUT', '/api/catalog/quality/rules', {
+      // GET single via /[id]
+      const getRes = await apiRequest(request, 'GET', `/api/catalog/quality/rules/${createdRuleId}`, {
         token,
-        data: { id: createdRuleId, label: 'QA IT-001 updated', weight: 1.5 },
       });
-      expect(updateRes.ok(), `Update failed: ${updateRes.status()}`).toBeTruthy();
+      expect(getRes.ok(), `GET /[id] failed: ${getRes.status()}`).toBeTruthy();
+      const getBody = (await getRes.json()) as { id: string; label: string; conditionExpression: unknown };
+      expect(getBody.id).toBe(createdRuleId);
+      expect(getBody.conditionExpression).toBeTruthy();
+
+      // UPDATE via PATCH /[id]
+      const updateRes = await apiRequest(request, 'PATCH', `/api/catalog/quality/rules/${createdRuleId}`, {
+        token,
+        data: { label: 'QA IT-001 updated', weight: 1.5 },
+      });
+      expect(updateRes.ok(), `PATCH /[id] failed: ${updateRes.status()}`).toBeTruthy();
 
       // LIST — verify label updated
       const listAfterUpdateRes = await apiRequest(
@@ -65,12 +74,11 @@ test.describe('IT-001: Quality Rules CRUD API', () => {
       expect(updated?.label).toBe('QA IT-001 updated');
       expect(updated?.weight).toBe(1.5);
 
-      // SOFT-DELETE
-      const deleteRes = await apiRequest(request, 'DELETE', '/api/catalog/quality/rules', {
+      // SOFT-DELETE via DELETE /[id]
+      const deleteRes = await apiRequest(request, 'DELETE', `/api/catalog/quality/rules/${createdRuleId}`, {
         token,
-        data: { id: createdRuleId },
       });
-      expect(deleteRes.ok(), `Delete failed: ${deleteRes.status()}`).toBeTruthy();
+      expect(deleteRes.ok(), `DELETE /[id] failed: ${deleteRes.status()}`).toBeTruthy();
 
       // LIST — verify rule no longer appears (soft-deleted)
       const listAfterDeleteRes = await apiRequest(
@@ -89,9 +97,8 @@ test.describe('IT-001: Quality Rules CRUD API', () => {
       createdRuleId = null;
     } finally {
       if (token && createdRuleId) {
-        await apiRequest(request, 'DELETE', '/api/catalog/quality/rules', {
+        await apiRequest(request, 'DELETE', `/api/catalog/quality/rules/${createdRuleId}`, {
           token,
-          data: { id: createdRuleId },
         }).catch(() => {});
       }
     }
@@ -103,3 +110,4 @@ test.describe('IT-001: Quality Rules CRUD API', () => {
     expect(res.status()).toBe(401);
   });
 });
+

@@ -26,7 +26,7 @@ const createQualityRuleCommand: CommandHandler<CreateInput, CommandRuntimeContex
       label: input.label ?? null,
       severity: input.severity ?? 'MEDIUM',
       weight: String(input.weight ?? 1.0),
-      params: input.params ?? {},
+      conditionExpression: input.conditionExpression,
       highSeverityCap: input.highSeverityCap ?? 40,
       isActive: input.isActive ?? true,
     })
@@ -56,7 +56,7 @@ const updateQualityRuleCommand: CommandHandler<UpdateInput, CommandRuntimeContex
     if (input.label !== undefined) rule.label = input.label ?? null
     if (input.severity !== undefined) rule.severity = input.severity
     if (input.weight !== undefined) rule.weight = String(input.weight)
-    if (input.params !== undefined) rule.params = input.params
+    if (input.conditionExpression !== undefined) rule.conditionExpression = input.conditionExpression
     if (input.highSeverityCap !== undefined) rule.highSeverityCap = input.highSeverityCap
     if (input.isActive !== undefined) rule.isActive = input.isActive
     await em.flush()
@@ -91,3 +91,4 @@ registerCommand(updateQualityRuleCommand)
 registerCommand(deleteQualityRuleCommand)
 
 export { createQualityRuleSchema, updateQualityRuleSchema }
+

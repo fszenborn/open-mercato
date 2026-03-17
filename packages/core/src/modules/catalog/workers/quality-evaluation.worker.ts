@@ -1,11 +1,8 @@
-import type { EntityManager } from '@mikro-orm/postgresql'
 import {
   CATALOG_QUALITY_QUEUE_NAME,
   type QualityEvaluationJob,
 } from '../lib/quality/queue-types'
-import { QualityEvaluationService } from '../lib/quality/evaluation.service'
-import { ConfiguredRuleResolver } from '../lib/quality/resolver'
-import { createDefaultRuleRegistry } from '../lib/quality/registry'
+import type { QualityEvaluationService } from '../lib/quality/evaluation.service'
 import { emitCatalogEvent } from '../events'
 
 export { CATALOG_QUALITY_QUEUE_NAME }
@@ -26,10 +23,7 @@ export default async function handle(
 ): Promise<void> {
   const { productId } = job.payload
 
-  const em = (ctx.resolve('em') as EntityManager).fork()
-  const resolver = new ConfiguredRuleResolver(em)
-  const registry = createDefaultRuleRegistry()
-  const qualityEvaluationService = new QualityEvaluationService(em, resolver, registry)
+  const qualityEvaluationService = ctx.resolve<QualityEvaluationService>('qualityEvaluationService')
   const { score, grade, previousScore } = await qualityEvaluationService.evaluateProduct(productId)
 
   await emitCatalogEvent('catalog.quality_score.updated', { productId, score, grade })
@@ -38,3 +32,4 @@ export default async function handle(
     await emitCatalogEvent('catalog.quality_score.degraded', { productId, score, grade, previousScore })
   }
 }
+

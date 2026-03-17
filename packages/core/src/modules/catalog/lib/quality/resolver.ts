@@ -13,18 +13,22 @@ export class ConfiguredRuleResolver {
       deletedAt: null,
     })
 
-    return { bindings: rules.map(toBinding) }
+    return { bindings: rules.filter(hasConditionExpression).map(toBinding) }
   }
+}
+
+function hasConditionExpression(rule: CatalogDataQualityRule): boolean {
+  return rule.conditionExpression != null && typeof rule.conditionExpression === 'object'
 }
 
 function toBinding(rule: CatalogDataQualityRule): ConfiguredRuleBinding {
   return {
     bindingKey: rule.id,
     ruleId: rule.ruleId,
-    params: rule.params,
+    conditionExpression: rule.conditionExpression as Record<string, unknown>,
     weight: parseFloat(rule.weight),
     severity: rule.severity as Severity,
     highSeverityCap: rule.highSeverityCap,
-    conditionExpression: rule.conditionExpression,
   }
 }
+

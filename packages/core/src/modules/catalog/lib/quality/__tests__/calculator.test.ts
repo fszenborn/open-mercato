@@ -7,7 +7,14 @@ function binding(
   weight = 1.0,
   highSeverityCap = 40,
 ): ConfiguredRuleBinding {
-  return { bindingKey: ruleId, ruleId, params: {}, weight, severity, highSeverityCap }
+  return {
+    bindingKey: ruleId,
+    ruleId,
+    conditionExpression: { operator: 'IS_NOT_EMPTY', field: ruleId },
+    weight,
+    severity,
+    highSeverityCap,
+  }
 }
 
 /**

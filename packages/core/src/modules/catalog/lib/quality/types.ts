@@ -6,11 +6,6 @@ export interface RuleResult {
   message?: string
 }
 
-export interface Rule<TParams = Record<string, unknown>> {
-  ruleId: string
-  evaluate(snapshot: ProductQualitySnapshot, params: TParams): RuleResult
-}
-
 export interface ProductQualitySnapshot {
   id: string
   tenantId: string
@@ -28,12 +23,12 @@ export interface ProductQualitySnapshot {
 export interface ConfiguredRuleBinding {
   /** Unique key for this binding — DB entity UUID. Used as the results map key. */
   bindingKey: string
+  /** Human-readable rule identifier (e.g., 'quality.title.required'). Informational only. */
   ruleId: string
-  params: Record<string, unknown>
+  conditionExpression: Record<string, unknown>
   weight: number
   severity: Severity
   highSeverityCap: number
-  conditionExpression?: Record<string, unknown> | null
 }
 
 export interface ResolvedRules {

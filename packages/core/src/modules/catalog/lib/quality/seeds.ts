@@ -8,65 +8,61 @@ type DefaultRule = {
   label: string
   severity: string
   weight: string
-  params: Record<string, unknown>
   highSeverityCap: number
+  conditionExpression: Record<string, unknown>
 }
 
 const DEFAULT_RULES: DefaultRule[] = [
   {
-    ruleId: 'attr.required',
+    ruleId: 'quality.title.required',
     label: 'Title required',
     severity: 'BLOCKER',
     weight: '1.0',
-    params: { field: 'title' },
     highSeverityCap: 40,
+    conditionExpression: { operator: 'IS_NOT_EMPTY', field: 'title' },
   },
   {
-    ruleId: 'attr.required',
+    ruleId: 'quality.description.required',
     label: 'Description required',
     severity: 'HIGH',
     weight: '1.0',
-    params: { field: 'description' },
     highSeverityCap: 40,
+    conditionExpression: { operator: 'IS_NOT_EMPTY', field: 'description' },
   },
   {
-    ruleId: 'attr.required',
+    ruleId: 'quality.primary_image.required',
     label: 'Primary image required',
     severity: 'HIGH',
     weight: '1.0',
-    params: { field: 'defaultMediaId' },
     highSeverityCap: 40,
+    conditionExpression: { operator: 'IS_NOT_EMPTY', field: 'defaultMediaId' },
   },
   {
-    ruleId: 'attr.required',
+    ruleId: 'quality.sku.required',
     label: 'SKU required',
     severity: 'MEDIUM',
     weight: '1.0',
-    params: { field: 'sku' },
     highSeverityCap: 40,
+    conditionExpression: { operator: 'IS_NOT_EMPTY', field: 'sku' },
   },
   {
-    ruleId: 'media.min_count',
+    ruleId: 'quality.media.min_one',
     label: 'At least 1 media',
     severity: 'MEDIUM',
     weight: '0.5',
-    params: { min: 1 },
     highSeverityCap: 40,
+    conditionExpression: { operator: '>=', field: 'mediaCount', value: 1 },
   },
   {
-    ruleId: 'attr.required',
+    ruleId: 'quality.subtitle.recommended',
     label: 'Subtitle recommended',
     severity: 'LOW',
     weight: '0.5',
-    params: { field: 'subtitle' },
     highSeverityCap: 40,
+    conditionExpression: { operator: 'IS_NOT_EMPTY', field: 'subtitle' },
   },
 ]
 
-/**
- * Seeds default quality rules for a tenant/organization.
- * Idempotent: matches on (tenantId + organizationId + ruleId + label).
- */
 export async function seedDefaultQualityRules(
   em: EntityManager,
   scope: Scope,
@@ -87,7 +83,7 @@ export async function seedDefaultQualityRules(
       label: rule.label,
       severity: rule.severity,
       weight: rule.weight,
-      params: rule.params,
+      conditionExpression: rule.conditionExpression,
       highSeverityCap: rule.highSeverityCap,
       isActive: true,
     })
@@ -95,3 +91,4 @@ export async function seedDefaultQualityRules(
   }
   await em.flush()
 }
+

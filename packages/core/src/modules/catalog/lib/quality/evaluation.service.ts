@@ -1,18 +1,15 @@
 import type { EntityManager } from '@mikro-orm/postgresql'
-import { Attachment } from '@open-mercato/core/modules/attachments/data/entities'
 import { E } from '#generated/entities.ids.generated'
 import { CatalogProduct, CatalogDataQualityScore } from '../../data/entities'
 import type { Grade, ProductQualitySnapshot, RuleResult } from './types'
 import type { ConfiguredRuleResolver } from './resolver'
-import type { RuleRegistry } from './registry'
 import { calculateScore } from './calculator'
-import { evaluateExpression, type ConditionExpression } from '@open-mercato/core/modules/business_rules/lib/expression-evaluator'
+import { evaluateExpression, type ConditionExpression } from '@open-mercato/core/modules/business_rules'
 
 export class QualityEvaluationService {
   constructor(
     private em: EntityManager,
     private resolver: ConfiguredRuleResolver,
-    private registry: RuleRegistry,
   ) { }
 
   async evaluateProduct(
@@ -23,12 +20,11 @@ export class QualityEvaluationService {
       throw new Error(`Product not found: ${productId}`)
     }
 
-    const mediaCount = await this.em.count(Attachment, {
-      entityId: E.catalog.catalog_product,
-      recordId: productId,
-      organizationId: product.organizationId,
-      tenantId: product.tenantId,
-    })
+    const [{ count }] = await this.em.getConnection().execute<[{ count: string }]>(
+      `SELECT COUNT(*) AS count FROM attachments WHERE entity_id = ? AND record_id = ? AND organization_id = ? AND tenant_id = ?`,
+      [E.catalog.catalog_product, productId, product.organizationId, product.tenantId],
+    )
+    const mediaCount = parseInt(count, 10)
 
     const snapshot: ProductQualitySnapshot = {
       id: product.id,
@@ -49,34 +45,17 @@ export class QualityEvaluationService {
     const results: Record<string, RuleResult> = {}
 
     for (const binding of bindings) {
-      if (binding.conditionExpression) {
-        try {
-          // Use BR expression evaluator
-          const passed = evaluateExpression(
-            binding.conditionExpression as unknown as ConditionExpression,
-            snapshot,
-            {}
-          )
-          results[binding.bindingKey] = { passed, message: passed ? undefined : `Rule failed` }
-        } catch (err) {
-          results[binding.bindingKey] = {
-            passed: false,
-            message: `Expression evaluation error: ${err instanceof Error ? err.message : String(err)}`,
-          }
-        }
-      } else {
-        const rule = this.registry.get(binding.ruleId)
-        if (!rule) {
-          results[binding.bindingKey] = { passed: false, message: `Unknown rule class: ${binding.ruleId}` }
-          continue
-        }
-        try {
-          results[binding.bindingKey] = rule.evaluate(snapshot, binding.params)
-        } catch (err) {
-          results[binding.bindingKey] = {
-            passed: false,
-            message: `Rule evaluation error: ${err instanceof Error ? err.message : String(err)}`,
-          }
+      try {
+        const passed = evaluateExpression(
+          binding.conditionExpression as unknown as ConditionExpression,
+          snapshot,
+          {},
+        )
+        results[binding.bindingKey] = { passed, message: passed ? undefined : `Rule "${binding.ruleId}" failed` }
+      } catch (err) {
+        results[binding.bindingKey] = {
+          passed: false,
+          message: `Expression evaluation error in "${binding.ruleId}": ${err instanceof Error ? err.message : String(err)}`,
         }
       }
     }

@@ -392,7 +392,7 @@ export const createQualityRuleSchema = scoped.extend({
   label: z.string().nullable().optional(),
   severity: severityEnum.default('MEDIUM'),
   weight: z.number().min(0.1).max(10).default(1.0),
-  params: z.record(z.unknown()).default({}),
+  conditionExpression: z.record(z.unknown()),
   highSeverityCap: z.number().int().min(0).max(100).default(40),
   isActive: z.boolean().default(true),
 })
@@ -405,7 +405,7 @@ export const updateQualityRuleSchema = z.object({
   label: z.string().nullable().optional(),
   severity: severityEnum.optional(),
   weight: z.number().min(0.1).max(10).optional(),
-  params: z.record(z.unknown()).optional(),
+  conditionExpression: z.record(z.unknown()).optional(),
   highSeverityCap: z.number().int().min(0).max(100).optional(),
   isActive: z.boolean().optional(),
 })
@@ -418,7 +418,7 @@ export const qualityRuleItemSchema = z.object({
   label: z.string().nullable(),
   severity: severityEnum,
   weight: z.number(),
-  params: z.record(z.unknown()),
+  conditionExpression: z.record(z.unknown()).nullable(),
   highSeverityCap: z.number(),
   isActive: z.boolean(),
   createdAt: z.string(),

@@ -16,7 +16,7 @@ type QualityRuleFormValues = {
   severity: string
   weight: number | string
   highSeverityCap: number | string
-  params?: string
+  conditionExpression?: string
   isActive?: boolean
 }
 
@@ -27,12 +27,167 @@ type RuleRow = {
   severity: string
   weight: number
   highSeverityCap: number
-  params: Record<string, unknown>
+  conditionExpression: Record<string, unknown> | null
   isActive: boolean
 }
 
-type RulesResponse = {
-  items?: RuleRow[]
+const SEVERITY_OPTIONS = [
+  { value: 'INFO', label: 'Info' },
+  { value: 'LOW', label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH', label: 'High' },
+  { value: 'BLOCKER', label: 'Blocker' },
+]
+
+async function submitUpdate(values: QualityRuleFormValues, t: (key: string, fallback?: string) => string) {
+  const id = typeof values.id === 'string' ? values.id : ''
+  if (!id) {
+    const message = t('catalog.quality.rules.form.errors.idRequired', 'Quality rule identifier is required.')
+    throw createCrudFormError(message, { id: message })
+  }
+
+  let conditionExpression: Record<string, unknown> | undefined
+  const rawExpr = typeof values.conditionExpression === 'string' ? values.conditionExpression.trim() : ''
+  if (rawExpr) {
+    try {
+      conditionExpression = JSON.parse(rawExpr)
+    } catch {
+      const message = t('catalog.quality.rules.form.errors.conditionExpressionJson', 'Condition expression must be valid JSON.')
+      throw createCrudFormError(message, { conditionExpression: message })
+    }
+  }
+
+  await updateCrud(`catalog/quality/rules/${id}`, {
+    ruleId: typeof values.ruleId === 'string' ? values.ruleId.trim() : undefined,
+    label: typeof values.label === 'string' && values.label.trim() ? values.label.trim() : null,
+    severity: values.severity || undefined,
+    weight: typeof values.weight !== 'undefined' ? Number(values.weight) : undefined,
+    highSeverityCap: typeof values.highSeverityCap !== 'undefined' ? Number(values.highSeverityCap) : undefined,
+    conditionExpression,
+    isActive: values.isActive,
+  })
+}
+
+export default function EditQualityRulePage({ params }: { params?: { id?: string } }) {
+  const ruleId = params?.id ?? ''
+  const t = useT()
+  const [initialValues, setInitialValues] = React.useState<QualityRuleFormValues | null>(null)
+  const [loading, setLoading] = React.useState<boolean>(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!ruleId) return
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const { ok, result } = await apiCall<RuleRow>(
+          `/api/catalog/quality/rules/${encodeURIComponent(ruleId)}`,
+        )
+        if (!ok) throw new Error(t('catalog.quality.rules.form.errors.load', 'Failed to load quality rule'))
+        if (!result) throw new Error(t('catalog.quality.rules.form.errors.notFound', 'Quality rule not found'))
+        if (!cancelled) {
+          setInitialValues({
+            id: result.id,
+            ruleId: result.ruleId,
+            label: result.label ?? '',
+            severity: result.severity,
+            weight: result.weight,
+            highSeverityCap: result.highSeverityCap,
+            conditionExpression: JSON.stringify(result.conditionExpression ?? {}, null, 2),
+            isActive: result.isActive,
+          })
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const fallback = t('catalog.quality.rules.form.errors.load', 'Failed to load quality rule')
+          setError(err instanceof Error ? err.message : fallback)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [ruleId, t])
+
+  const fields = React.useMemo<CrudField[]>(() => [
+    {
+      id: 'ruleId',
+      label: t('catalog.quality.rules.form.field.ruleId', 'Rule ID'),
+      type: 'text',
+      required: true,
+    },
+    {
+      id: 'label',
+      label: t('catalog.quality.rules.form.field.label', 'Label'),
+      type: 'text',
+    },
+    {
+      id: 'severity',
+      label: t('catalog.quality.rules.form.field.severity', 'Severity'),
+      type: 'select',
+      options: SEVERITY_OPTIONS,
+      required: true,
+    },
+    {
+      id: 'weight',
+      label: t('catalog.quality.rules.form.field.weight', 'Weight'),
+      type: 'number',
+    },
+    {
+      id: 'highSeverityCap',
+      label: t('catalog.quality.rules.form.field.highSeverityCap', 'HIGH severity cap'),
+      type: 'number',
+    },
+    {
+      id: 'conditionExpression',
+      label: t('catalog.quality.rules.form.field.conditionExpression', 'Condition Expression (JSON)'),
+      type: 'textarea',
+      required: true,
+      description: t('catalog.quality.rules.form.field.conditionExpressionHelp', 'Business Rules expression, e.g. {"operator":"IS_NOT_EMPTY","field":"title"} or {"operator":">=","field":"mediaCount","value":1}'),
+    },
+    {
+      id: 'isActive',
+      label: t('catalog.quality.rules.form.field.isActive', 'Active'),
+      type: 'checkbox',
+    },
+  ], [t])
+
+  const groups = React.useMemo<CrudFormGroup[]>(() => [
+    {
+      id: 'details',
+      title: t('catalog.quality.rules.form.group.details', 'Rule Configuration'),
+      column: 1,
+      fields: ['ruleId', 'label', 'severity', 'weight', 'highSeverityCap', 'conditionExpression', 'isActive'],
+    },
+  ], [t])
+
+  const successMessage = encodeURIComponent(t('catalog.quality.rules.flash.updated', 'Quality rule updated'))
+
+  if (loading) return <LoadingMessage />
+  if (error || !initialValues) return <ErrorMessage message={error ?? t('catalog.quality.rules.form.errors.notFound', 'Quality rule not found')} />
+
+  return (
+    <Page>
+      <PageBody>
+        <CrudForm<QualityRuleFormValues>
+          title={t('catalog.quality.rules.form.editTitle', 'Edit quality rule')}
+          backHref="/backend/catalog/quality/rules"
+          fields={fields}
+          groups={groups}
+          initialValues={initialValues}
+          submitLabel={t('catalog.quality.rules.form.action.update', 'Update')}
+          cancelHref="/backend/catalog/quality/rules"
+          successRedirect={`/backend/catalog/quality/rules?flash=${successMessage}&type=success`}
+          onSubmit={async (values) => {
+            await submitUpdate({ ...values, id: ruleId }, t)
+          }}
+        />
+      </PageBody>
+    </Page>
+  )
 }
 
 const SEVERITY_OPTIONS = [
